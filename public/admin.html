@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Create Mood Letter</title>
+    <link rel="stylesheet" href="/style.css">
+    <script defer src="/admin.js"></script>
+  </head>
+  <body>
+    <main class="admin-shell">
+      <section class="admin-heading">
+        <p class="eyebrow">Her Mood Letters</p>
+        <h1>Create a Media Mood Letter</h1>
+      </section>
+
+      <form class="glass-card admin-form" id="moodForm">
+        <label>
+          Recipient name
+          <input name="recipient_name" required autocomplete="off" placeholder="Her name">
+        </label>
+        <label>
+          Sender name
+          <input name="sender_name" autocomplete="off" placeholder="Your name">
+        </label>
+        <label class="full">
+          Opening message
+          <textarea name="opening_message" required rows="3" placeholder="Someone made this just for you..."></textarea>
+        </label>
+        <label class="full">
+          Angry letter
+          <textarea name="angry_letter" rows="6" placeholder="Write the letter she sees when she is angry"></textarea>
+        </label>
+        <label class="full">
+          Happy letter
+          <textarea name="happy_letter" rows="6" placeholder="Write the letter she sees when she is happy"></textarea>
+        </label>
+        <label>
+          Angry button text
+          <input name="angry_button_text" placeholder="Open this when you're ready">
+        </label>
+        <label>
+          Happy button text
+          <input name="happy_button_text" placeholder="Play your surprise">
+        </label>
+        <label>
+          Angry media URL
+          <input name="angry_media_url" type="url" placeholder="https://...">
+        </label>
+        <label>
+          Happy media URL
+          <input name="happy_media_url" type="url" placeholder="https://...">
+        </label>
+        <label>
+          Angry media type
+          <select name="angry_media_type">
+            <option value="image">Image</option>
+            <option value="audio">Audio</option>
+            <option value="youtube">YouTube</option>
+            <option value="link">Link</option>
+          </select>
+        </label>
+        <label>
+          Happy media type
+          <select name="happy_media_type">
+            <option value="image">Image</option>
+            <option value="audio">Audio</option>
+            <option value="youtube">YouTube</option>
+            <option value="link">Link</option>
+          </select>
+        </label>
+        <label class="full">
+          Final message
+          <textarea name="final_message" rows="3" placeholder="The last note below the media"></textarea>
+        </label>
+        <button class="primary-button full" type="submit" id="generateButton">Generate Link</button>
+      </form>
+
+      <section class="glass-card result-card hidden" id="resultCard" aria-live="polite">
+        <p class="eyebrow">Private link ready</p>
+        <div class="copy-row">
+          <input id="generatedLink" readonly>
+          <button class="secondary-button" id="copyButton" type="button">Copy</button>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

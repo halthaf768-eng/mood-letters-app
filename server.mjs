@@ -1,0 +1,208 @@
+import crypto from 'node:crypto';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import 'dotenv/config';
+import express from 'express';
+import { createClient } from '@supabase/supabase-js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || '0.0.0.0';
+const TABLE_NAME = 'mood_letters';
+
+app.set('trust proxy', 1);
+app.use(express.json({ limit: '1mb' }));
+
+const requiredEnv = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
+
+function getConfigError() {
+  const missing = requiredEnv.filter((key) => !process.env[key]);
+  if (!missing.length) return null;
+  return {
+    error: 'Server is missing required Supabase environment variables.',
+    missing
+  };
+}
+
+function getSupabase() {
+  const configError = getConfigError();
+  if (configError) return { error: configError };
+
+  return {
+    client: createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false
+        }
+      }
+    )
+  };
+}
+
+function hasAdminAccess(req) {
+  const adminKey = process.env.ADMIN_KEY;
+  if (!adminKey) return false;
+
+  const suppliedKey = req.query.key || req.get('x-admin-key') || req.get('authorization')?.replace(/^Bearer\s+/i, '');
+  return suppliedKey === adminKey;
+}
+
+function requireAdmin(req, res, next) {
+  if (hasAdminAccess(req)) return next();
+  return res.status(401).json({
+    error: 'Unauthorized. Provide the ADMIN_KEY as ?key=... or x-admin-key header.'
+  });
+}
+
+function createSlug() {
+  return crypto.randomBytes(6).toString('base64url').toLowerCase();
+}
+
+function absolutePublicLink(req, slug) {
+  const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+  return `${baseUrl.replace(/\/$/, '')}/mood/${slug}`;
+}
+
+function cleanMoodPayload(body) {
+  const allowedMediaTypes = new Set(['image', 'audio', 'youtube', 'link']);
+  const textFields = [
+    'recipient_name',
+    'sender_name',
+    'opening_message',
+    'angry_letter',
+    'happy_letter',
+    'angry_button_text',
+    'happy_button_text',
+    'angry_media_url',
+    'happy_media_url',
+    'final_message'
+  ];
+
+  const payload = {};
+  for (const field of textFields) {
+    payload[field] = typeof body[field] === 'string' ? body[field].trim() : '';
+  }
+
+  payload.angry_media_type = allowedMediaTypes.has(body.angry_media_type) ? body.angry_media_type : 'link';
+  payload.happy_media_type = allowedMediaTypes.has(body.happy_media_type) ? body.happy_media_type : 'link';
+
+  return payload;
+}
+
+app.get('/ping', (_req, res) => {
+  res.json({ ok: true });
+});
+
+app.get('/', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.get(['/admin', '/admin.html'], (req, res) => {
+  if (!hasAdminAccess(req)) {
+    return res.status(401).sendFile(path.join(__dirname, 'public', 'admin-locked.html'));
+  }
+
+  return res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+app.get('/mood/:slug', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'mood.html'));
+});
+
+app.post('/api/moods', requireAdmin, async (req, res) => {
+  const { client, error: configError } = getSupabase();
+  if (configError) return res.status(500).json(configError);
+
+  const payload = cleanMoodPayload(req.body);
+  if (!payload.recipient_name || !payload.opening_message) {
+    return res.status(400).json({
+      error: 'Recipient name and opening message are required.'
+    });
+  }
+
+  let data = null;
+  let error = null;
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const slug = createSlug();
+    const insertPayload = {
+      ...payload,
+      slug,
+      updated_at: new Date().toISOString()
+    };
+
+    const result = await client
+      .from(TABLE_NAME)
+      .insert(insertPayload)
+      .select('slug')
+      .single();
+
+    data = result.data;
+    error = result.error;
+    if (!error || error.code !== '23505') break;
+  }
+
+  if (error) {
+    return res.status(500).json({
+      error: 'Failed to create mood letter.',
+      details: error.message,
+      code: error.code
+    });
+  }
+
+  return res.status(201).json({
+    slug: data.slug,
+    link: absolutePublicLink(req, data.slug)
+  });
+});
+
+app.get('/api/moods/:slug', async (req, res) => {
+  const { client, error: configError } = getSupabase();
+  if (configError) return res.status(500).json(configError);
+
+  const { data, error } = await client
+    .from(TABLE_NAME)
+    .select(`
+      slug,
+      recipient_name,
+      sender_name,
+      opening_message,
+      angry_letter,
+      happy_letter,
+      angry_button_text,
+      happy_button_text,
+      angry_media_url,
+      happy_media_url,
+      angry_media_type,
+      happy_media_type,
+      final_message
+    `)
+    .eq('slug', req.params.slug)
+    .single();
+
+  if (error) {
+    const status = error.code === 'PGRST116' ? 404 : 500;
+    return res.status(status).json({
+      error: status === 404 ? 'Mood letter not found.' : 'Failed to fetch mood letter.',
+      details: error.message
+    });
+  }
+
+  return res.json({ mood: data });
+});
+
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.use((_req, res) => {
+  res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
+});
+
+app.listen(PORT, HOST, () => {
+  console.log(`Her Mood Letters is running on ${HOST}:${PORT}`);
+});

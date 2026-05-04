@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Your Mood Letter</title>
+    <link rel="stylesheet" href="/style.css">
+    <script defer src="/mood.js"></script>
+  </head>
+  <body>
+    <main class="mood-shell">
+      <section class="loading-screen" id="loadingScreen">
+        <div class="pulse-heart">💌</div>
+        <p>Someone made this just for you 💌</p>
+      </section>
+
+      <section class="glass-card mood-intro hidden" id="introScreen">
+        <p class="eyebrow" id="senderLine"></p>
+        <h1 id="recipientName"></h1>
+        <p id="openingMessage"></p>
+        <div class="mood-buttons" aria-label="Choose a mood">
+          <button class="mood-button angry" type="button" data-mood="angry">😡 <span>Angry</span></button>
+          <button class="mood-button happy" type="button" data-mood="happy">😊 <span>Happy</span></button>
+        </div>
+      </section>
+
+      <section class="countdown hidden" id="countdown" aria-live="polite"></section>
+
+      <section class="glass-card letter-card hidden" id="letterScreen">
+        <p class="eyebrow" id="letterMood"></p>
+        <div class="letter-text" id="letterText"></div>
+        <button class="primary-button" type="button" id="mediaButton"></button>
+        <div class="media-frame hidden" id="mediaFrame"></div>
+        <p class="final-message" id="finalMessage"></p>
+      </section>
+
+      <section class="glass-card narrow-card hidden" id="errorScreen">
+        <h1>Letter not found</h1>
+        <p>This private mood letter may have moved, expired, or never existed.</p>
+      </section>
+    </main>
+  </body>
+</html>
