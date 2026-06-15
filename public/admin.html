@@ -14,7 +14,9 @@
         <h1>Create a Media Mood Letter</h1>
       </section>
 
-      <form class="glass-card admin-form" id="moodForm">
+      <section class="glass-card setup-error hidden" id="setupError" aria-live="assertive"></section>
+
+      <form class="glass-card admin-form" id="moodForm" enctype="multipart/form-data">
         <label>
           Recipient name
           <input name="recipient_name" required autocomplete="off" placeholder="Her name">
@@ -43,30 +45,46 @@
           Happy button text
           <input name="happy_button_text" placeholder="Play your surprise">
         </label>
-        <label>
-          Angry media URL
+        <label class="media-url-field" data-media-field="angry">
+          <span class="field-title">Angry media URL</span>
           <input name="angry_media_url" type="url" placeholder="https://...">
         </label>
-        <label>
-          Happy media URL
+        <label class="media-url-field" data-media-field="happy">
+          <span class="field-title">Happy media URL</span>
           <input name="happy_media_url" type="url" placeholder="https://...">
+        </label>
+        <label class="upload-field hidden" data-upload-field="angry">
+          <span class="field-title">Upload Angry Image</span>
+          <input name="angry_image_file" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
+          <span class="field-hint">JPG, PNG, or WEBP. Max 5MB.</span>
+        </label>
+        <label class="upload-field hidden" data-upload-field="happy">
+          <span class="field-title">Upload Happy Image</span>
+          <input name="happy_image_file" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
+          <span class="field-hint">JPG, PNG, or WEBP. Max 5MB.</span>
+        </label>
+        <label>
+          Angry music URL
+          <input name="angry_music_url" type="url" placeholder="Soft piano, lofi, or ambient audio URL">
+        </label>
+        <label>
+          Happy music URL
+          <input name="happy_music_url" type="url" placeholder="Soft piano, lofi, or ambient audio URL">
         </label>
         <label>
           Angry media type
           <select name="angry_media_type">
             <option value="image">Image</option>
-            <option value="audio">Audio</option>
             <option value="youtube">YouTube</option>
-            <option value="link">Link</option>
+            <option value="video">Video</option>
           </select>
         </label>
         <label>
           Happy media type
           <select name="happy_media_type">
             <option value="image">Image</option>
-            <option value="audio">Audio</option>
             <option value="youtube">YouTube</option>
-            <option value="link">Link</option>
+            <option value="video">Video</option>
           </select>
         </label>
         <label class="full">

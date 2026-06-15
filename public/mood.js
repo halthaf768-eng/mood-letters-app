@@ -11,9 +11,14 @@ const letterText = document.querySelector('#letterText');
 const mediaButton = document.querySelector('#mediaButton');
 const mediaFrame = document.querySelector('#mediaFrame');
 const finalMessage = document.querySelector('#finalMessage');
+const bgMusic = document.querySelector('#bgMusic');
+const muteBtn = document.querySelector('#muteBtn');
 
 let moodData = null;
 let selectedMood = null;
+let fadeInterval = null;
+let musicStartQueued = false;
+const maxMusicVolume = 0.3;
 
 function show(element) {
   element.classList.remove('hidden');
@@ -47,6 +52,56 @@ function youtubeEmbedUrl(url) {
   } catch {
     return '';
   }
+}
+
+function fadeInAudio(audio) {
+  if (!audio) return;
+  clearInterval(fadeInterval);
+
+  let volume = 0;
+  audio.volume = volume;
+  fadeInterval = setInterval(() => {
+    if (volume < maxMusicVolume) {
+      volume = Math.min(maxMusicVolume, volume + 0.02);
+      audio.volume = volume;
+      return;
+    }
+
+    clearInterval(fadeInterval);
+  }, 200);
+}
+
+function playBackgroundMusic() {
+  if (!bgMusic || !bgMusic.src || !bgMusic.paused) return;
+
+  bgMusic.volume = 0;
+  bgMusic.play()
+    .then(() => fadeInAudio(bgMusic))
+    .catch(() => queueBackgroundMusicStart());
+}
+
+function queueBackgroundMusicStart() {
+  if (musicStartQueued) return;
+
+  musicStartQueued = true;
+  document.addEventListener('click', () => {
+    musicStartQueued = false;
+    playBackgroundMusic();
+  }, { once: true });
+}
+
+function setBackgroundMusic(data, mood) {
+  if (!bgMusic || !data) return;
+
+  const src = mood === 'angry'
+    ? data.angry_music_url || ''
+    : data.happy_music_url || '';
+
+  if (!src) return;
+  if (bgMusic.src === src) return;
+
+  bgMusic.src = src;
+  bgMusic.load();
 }
 
 async function runCountdown() {
@@ -110,11 +165,25 @@ function renderMedia(type, url) {
     return;
   }
 
+  if (type === 'video') {
+    const video = document.createElement('video');
+    video.src = url;
+    video.controls = true;
+    video.playsInline = true;
+    video.preload = 'metadata';
+    mediaFrame.classList.add('video-media');
+    mediaFrame.append(video);
+    show(mediaFrame);
+    return;
+  }
+
   window.open(url, '_blank', 'noopener,noreferrer');
 }
 
 async function openLetter(mood) {
   selectedMood = mood;
+  setBackgroundMusic(moodData, mood);
+  playBackgroundMusic();
   await runCountdown();
 
   const isAngry = mood === 'angry';
@@ -149,6 +218,17 @@ async function loadMood() {
 
 document.querySelectorAll('.mood-button').forEach((button) => {
   button.addEventListener('click', () => openLetter(button.dataset.mood));
+});
+
+queueBackgroundMusicStart();
+
+muteBtn.addEventListener('click', (event) => {
+  event.stopPropagation();
+  if (!bgMusic) return;
+
+  bgMusic.muted = !bgMusic.muted;
+  muteBtn.textContent = bgMusic.muted ? '🔇' : '🔊';
+  muteBtn.setAttribute('aria-label', bgMusic.muted ? 'Unmute background music' : 'Mute background music');
 });
 
 mediaButton.addEventListener('click', () => {
