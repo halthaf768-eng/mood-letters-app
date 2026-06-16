@@ -124,7 +124,7 @@ async function getPhotoBucketSetupError(client) {
   if (error) {
     return {
       error: 'Supabase Storage setup error.',
-      details: `Create a public Supabase Storage bucket named "${PHOTO_BUCKET}" before uploading photos.`
+      details: `Could not access the "${PHOTO_BUCKET}" bucket from this server. Confirm Render uses the same SUPABASE_URL project where the bucket exists, and that SUPABASE_SERVICE_ROLE_KEY is the service role key for that project. Supabase said: ${error.message}`
     };
   }
 
