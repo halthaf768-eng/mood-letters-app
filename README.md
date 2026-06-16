@@ -9,6 +9,7 @@ A production-ready Node.js + Express app for private mood-based emotional gift p
 - Protected admin page at `/admin?key=YOUR_ADMIN_KEY`
 - Protected creation API using `?key=...` or `x-admin-key`
 - Admin photo uploads to Supabase Storage bucket `mood-photos`
+- Admin music uploads to Supabase Storage bucket `mood-music`
 - Mood-based background music with mute control and smooth fade-in
 - Mobile-first glassmorphism UI
 - Render-ready with `process.env.PORT`
@@ -59,13 +60,15 @@ create table if not exists mood_letters (
 create index if not exists mood_letters_slug_idx on mood_letters (slug);
 ```
 
-Create a public Supabase Storage bucket named:
+Create public Supabase Storage buckets named:
 
 ```text
 mood-photos
+mood-music
 ```
 
 Uploaded letter images are stored in that bucket under `letters/`. The backend validates `.jpg`, `.jpeg`, `.png`, and `.webp` files up to 5MB before uploading.
+Uploaded background music is stored in `mood-music` under `letters/`. The backend validates `.mp3`, `.wav`, `.ogg`, and `.m4a` files up to 10MB before uploading.
 
 Optional `updated_at` trigger:
 
@@ -193,6 +196,22 @@ The response contains:
 }
 ```
 
+Upload background music:
+
+```bash
+curl -X POST "http://localhost:3000/api/upload-music?key=YOUR_ADMIN_KEY" \
+  -F "music=@/path/to/soft-piano.mp3"
+```
+
+The response contains:
+
+```json
+{
+  "url": "https://your-project.supabase.co/storage/v1/object/public/mood-music/letters/example.mp3",
+  "path": "letters/example.mp3"
+}
+```
+
 Fetch a mood letter:
 
 ```bash
@@ -247,4 +266,4 @@ angry_music_url
 happy_music_url
 ```
 
-Use quiet piano, lofi, or ambient audio files. The page does not autoplay with sound until a user interaction occurs, fades music in to a low volume, loops it, and lets the recipient mute or unmute from the floating top-right control.
+Use quiet piano, lofi, or ambient audio files. In the admin page, upload Angry and Happy music files from your device; the app saves their public URLs into `angry_music_url` and `happy_music_url`. The page does not autoplay with sound until a user interaction occurs, fades music in to a low volume, loops it, and lets the recipient mute or unmute from the floating top-right control.

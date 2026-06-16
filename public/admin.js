@@ -5,7 +5,9 @@ const generateButton = document.querySelector('#generateButton');
 const copyButton = document.querySelector('#copyButton');
 const setupError = document.querySelector('#setupError');
 const maxImageSize = 5 * 1024 * 1024;
+const maxMusicSize = 10 * 1024 * 1024;
 const allowedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const allowedMusicTypes = new Set(['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/x-m4a']);
 
 function getAdminKey() {
   return new URLSearchParams(window.location.search).get('key') || '';
@@ -36,6 +38,10 @@ function mediaUrlInput(mood) {
 
 function imageFileInput(mood) {
   return form.elements[`${mood}_image_file`];
+}
+
+function musicFileInput(mood) {
+  return form.elements[`${mood}_music_file`];
 }
 
 function updateMediaControls(mood) {
@@ -74,6 +80,16 @@ function validateImageFile(file) {
   }
 }
 
+function validateMusicFile(file) {
+  if (!allowedMusicTypes.has(file.type)) {
+    throw new Error('Music files must be MP3, WAV, OGG, or M4A.');
+  }
+
+  if (file.size > maxMusicSize) {
+    throw new Error('Music files must be 10MB or smaller.');
+  }
+}
+
 async function uploadPhoto(file) {
   validateImageFile(file);
 
@@ -98,6 +114,30 @@ async function uploadPhoto(file) {
   return result.url;
 }
 
+async function uploadMusic(file) {
+  validateMusicFile(file);
+
+  const body = new FormData();
+  body.append('music', file);
+
+  const response = await fetch(`/api/upload-music?key=${encodeURIComponent(getAdminKey())}`, {
+    method: 'POST',
+    headers: {
+      'x-admin-key': getAdminKey()
+    },
+    body
+  });
+
+  const result = await response.json();
+  if (!response.ok) {
+    const message = result.details || result.error || 'Could not upload music.';
+    if (result.error === 'Supabase Storage setup error.') showSetupError(message);
+    throw new Error(message);
+  }
+
+  return result.url;
+}
+
 async function buildMoodPayload() {
   const formData = new FormData(form);
   const payload = {};
@@ -112,6 +152,11 @@ async function buildMoodPayload() {
 
     const file = imageFileInput(mood).files[0];
     payload[`${mood}_media_url`] = file ? await uploadPhoto(file) : '';
+  }
+
+  for (const mood of ['angry', 'happy']) {
+    const file = musicFileInput(mood).files[0];
+    payload[`${mood}_music_url`] = file ? await uploadMusic(file) : '';
   }
 
   return payload;
